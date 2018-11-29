@@ -53,5 +53,60 @@ describe('Campaigns', () =>{
         const isContributor =  await campaign.methods.approvers(accounts[1]).call();
         assert(isContributor);
     });
+
+    it('Requires a minimum contribution', async ()=>{
+        try {
+            await campaign.methods.contribute().send({
+                value:'5', // should result in err since minimum needed is 100.
+                from: accounts[1]
+            });
+            assert(false);
+        } catch(err) {
+            assert(err);
+        }
+    });
+
+    it('Allows a manager to make a payment request', async () =>{
+        await campaign.methods.createRequest('Buy Charger', '100', accounts[1])
+        .send({
+            from: accounts[0],
+            gas: '1000000'
+        });
+        const request = await campaign.methods.requests(0).call();
+
+        assert.equal('Buy Charger', request.description);
+    });
+
+    // complete end to end test.
+    it('Processes requests', async () => {
+        await campaign.methods.contribute().send({
+            from: accounts[0],
+            value: web3.utils.toWei('10', 'ether')
+        });
+
+        await campaign.methods.createRequest('Buy Charger', web3.utils.toWei('5', 'ether'), accounts[1])
+        .send({
+            from: accounts[0],
+             gas: '1000000'});
+
+        await campaign.methods.aqpproveRequest(0) // will need to fix the name ....
+        .send({
+            from: accounts[0],
+            gas: '1000000'
+        });
+
+        await campaign.methods.finalizeRequest(0)
+        .send({
+            from: accounts[0],// only manager can do it.
+            gas: '1000000'
+        });
+
+        let balance = await web3.eth.getBalance(accounts[1]);// returns string.
+        balance = web3.utils.fromWei(balance, 'ether');
+        balance = parseFloat(balance); // convert to decimal.
+
+        //console.log(balance);
+        assert(balance > 104);
+    });
 });
 
