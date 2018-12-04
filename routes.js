@@ -9,7 +9,8 @@ const routes = require('next-routes')();
 // so we specify wildcard denote by a : followed by a variable.
 routes
 .add('/campaigns/new', '/campaigns/new')
-.add('/campaigns/:address', '/campaigns/show');
+.add('/campaigns/:address', '/campaigns/show')
+.add('/campaigns/:address/requests', '/campaigns/requests/index');
 
 
 module.exports= routes;
