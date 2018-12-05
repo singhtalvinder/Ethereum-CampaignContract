@@ -1,23 +1,79 @@
 import React, {Component} from 'react';
-import {Button} from 'semantic-ui-react';
+import {Button, Table} from 'semantic-ui-react';
 import {Link} from '../../../routes';
 import Layout from '../../../components/layout';
+import Campaign from '../../../ethereum/campaign';
+import RequestRow from '../../../components/RequestRow';
 
 
 class RequestIndex extends Component {
     static async getInitialProps(props) {
         const {address} = props.query;
-        return {address};
+        const campaign = Campaign(address);
+
+        // Get total no of requests. We need this because solidity
+        // does not support returning array of requests.
+        const requestCount = await campaign.methods.getRequestsCount().call();
+
+        // Approvers of the campaign.
+        const approversCount = await campaign.methods.approversCount().call();
+
+        // the whole :Array(requestCount).fill().map((element, index) =>{
+        // means get the indices of the Array till max elements
+        // here its requestCount(total no of requests).
+        const requests = await Promise.all(
+            Array(parseInt(requestCount)).fill().map((element, index) =>{
+                return campaign.methods.requests(index).call()
+            })
+        );
+
+        return {address, requests, requestCount, approversCount};
     }
+
+    renderRows() {
+        // Iterate over the list of requests and create a request
+        // row for each.
+        return this.props.requests.map((request, index) => {
+            return (
+                <RequestRow
+                    key = {index}  
+                    id = {index}  
+                    request = {request}
+                    address = {this.props.address}
+                    approversCount = {this.props.approversCount}
+                />
+            );
+        });
+
+    }
+
     render () {
+        const {Header, Row, HeaderCell, Body} = Table;
         return (
             <Layout>
                 <h3>Request </h3>
                 <Link route = {`/campaigns/${this.props.address}/requests/new`}>
                 <a>
-                    <Button primary>Add Request</Button>
+                    <Button primary floated="right" style = {{marginBottom: 10}}>Add Request</Button>
                 </a>
                 </Link>
+                <Table>
+                    <Header>
+                        <Row>
+                            <HeaderCell>ID</HeaderCell>
+                            <HeaderCell>Description</HeaderCell>
+                            <HeaderCell>Amount(ETH)</HeaderCell>
+                            <HeaderCell>Recipient</HeaderCell>
+                            <HeaderCell>Approval Count</HeaderCell>
+                            <HeaderCell>Approve</HeaderCell>
+                            <HeaderCell>Finalize</HeaderCell>
+                        </Row>
+                    </Header>
+                    <Body>
+                    {this.renderRows()}
+                    </Body>
+                </Table>
+                <div>Found {this.props.requestCount} requests.</div>
             </Layout>
         );
     }

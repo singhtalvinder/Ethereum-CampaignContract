@@ -52,9 +52,10 @@ contract Campaign {
         // msg.value- is the amount in wei that is
         // passed in to this transaction.
         require (msg.value > minimumContribution);
-        
-        approvers[msg.sender] = true;
-        approversCount++; // increment the approvers. 
+        if(!approvers[msg.sender]) {
+            approvers[msg.sender] = true;
+            approversCount++; // increment the approvers. 
+        }
     }
     
     // By default parameters to a fn are passed by copy- a memory type. The
@@ -80,7 +81,7 @@ contract Campaign {
     }
     
     // Approve request at a particular index in requests.
-    function aqpproveRequest(uint index) public {
+    function approveRequest(uint index) public {
         Request storage request = requests[index];
         
         require(approvers[msg.sender]); // has already donated to the contract.
@@ -98,7 +99,7 @@ contract Campaign {
         require(!request.complete); //Its still not complete.
         
         // Let there be atleast 50% approvals be there to approve a request.
-        require(request.approvalCount > (approversCount / 2));
+        require(request.approvalCount >= (approversCount / 2));
         
         request.recipient.transfer(request.value);
         request.complete = true; // mark it complete.
